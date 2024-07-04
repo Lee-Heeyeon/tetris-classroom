@@ -22,6 +22,7 @@
         #game-container {
             display: flex;
             align-items: flex-start;
+            display: none;
         }
         #game-board {
             border: 2px solid #333;
@@ -49,9 +50,41 @@
             border-radius: 5px;
             cursor: pointer;
         }
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 182, 193, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 10;
+            flex-direction: column;
+        }
+        #overlay p {
+            font-size: 18px;
+            color: #FF4500;
+            margin-bottom: 20px;
+        }
+        #start-btn {
+            font-size: 24px;
+            padding: 10px 20px;
+            background-color: #FF6347;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
+    <div id="overlay">
+        <p>도형을 돌리기, 뒤집기, 밀기를 활용해서 블록을 이동해보세요. 한줄이 빈 공간없이 가득채워지면 100점을 얻습니다.</p>
+        <button id="start-btn">게임시작</button>
+    </div>
     <h1>즐거운 테트리스 교실</h1>
     <div id="game-container">
         <canvas id="game-board" width="200" height="400"></canvas>
@@ -270,8 +303,15 @@
         document.getElementById('rotate-btn').addEventListener('click', rotate);
         document.getElementById('drop-btn').addEventListener('click', hardDrop);
 
-        newPiece();
-        update();
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('game-container').style.display = 'flex';
+            newPiece();
+            update();
+        });
+
+        // Initialize the game container visibility
+        document.getElementById('game-container').style.display = 'none';
     </script>
 </body>
 </html>
