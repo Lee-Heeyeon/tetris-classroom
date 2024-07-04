@@ -12,16 +12,27 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #FFD700;  /* 밝은 노란색 배경 */
+            background-color: #FFD700;
             font-family: Arial, sans-serif;
         }
         h1 {
-            color: #FF6347;  /* 제목 색상 */
-            margin-bottom: 20px;
+            color: #FF6347;
+            margin-bottom: 10px;
+        }
+        #game-container {
+            display: flex;
+            align-items: flex-start;
         }
         #game-board {
             border: 2px solid #333;
-            background-color: rgba(255, 255, 255, 0.8);  /* 반투명한 흰색 배경 */
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+        #score-container {
+            margin-left: 20px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 2px solid #333;
+            border-radius: 5px;
         }
         #controls {
             display: flex;
@@ -42,16 +53,23 @@
 </head>
 <body>
     <h1>즐거운 테트리스 교실</h1>
-    <canvas id="game-board" width="200" height="400"></canvas>
+    <div id="game-container">
+        <canvas id="game-board" width="200" height="400"></canvas>
+        <div id="score-container">
+            <h2>점수: <span id="score">0</span></h2>
+        </div>
+    </div>
     <div id="controls">
         <button class="control-btn" id="left-btn">←</button>
         <button class="control-btn" id="rotate-btn">🔄</button>
         <button class="control-btn" id="right-btn">→</button>
         <button class="control-btn" id="down-btn">↓</button>
+        <button class="control-btn" id="drop-btn">⤓</button>
     </div>
     <script>
         const canvas = document.getElementById('game-board');
         const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
         const ROWS = 20;
         const COLS = 10;
         const BLOCK_SIZE = 20;
@@ -60,6 +78,7 @@
         let dropCounter = 0;
         let dropInterval = 1000;
         let lastTime = 0;
+        let score = 0;
 
         const SHAPES = [
             [[1, 1, 1, 1]],
@@ -144,6 +163,10 @@
                     linesCleared++;
                 }
             }
+            if (linesCleared > 0) {
+                score += linesCleared * 100;
+                scoreElement.textContent = score;
+            }
         }
 
         function update(time = 0) {
@@ -152,18 +175,7 @@
 
             dropCounter += deltaTime;
             if (dropCounter > dropInterval) {
-                currentPiece.y++;
-                if (collide()) {
-                    currentPiece.y--;
-                    merge();
-                    clearLines();
-                    newPiece();
-                    if (collide()) {
-                        alert('게임 오버! 다시 시작합니다.');
-                        board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
-                    }
-                }
-                dropCounter = 0;
+                moveDown();
             }
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -193,7 +205,31 @@
                 merge();
                 clearLines();
                 newPiece();
+                if (collide()) {
+                    alert('게임 오버! 점수: ' + score);
+                    board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+                    score = 0;
+                    scoreElement.textContent = score;
+                }
             }
+            dropCounter = 0;
+        }
+
+        function hardDrop() {
+            while (!collide()) {
+                currentPiece.y++;
+            }
+            currentPiece.y--;
+            merge();
+            clearLines();
+            newPiece();
+            if (collide()) {
+                alert('게임 오버! 점수: ' + score);
+                board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+                score = 0;
+                scoreElement.textContent = score;
+            }
+            dropCounter = 0;
         }
 
         function rotate() {
@@ -221,6 +257,9 @@
                 case 38:
                     rotate();
                     break;
+                case 32:
+                    hardDrop();
+                    break;
             }
         });
 
@@ -229,6 +268,7 @@
         document.getElementById('right-btn').addEventListener('click', moveRight);
         document.getElementById('down-btn').addEventListener('click', moveDown);
         document.getElementById('rotate-btn').addEventListener('click', rotate);
+        document.getElementById('drop-btn').addEventListener('click', hardDrop);
 
         newPiece();
         update();
