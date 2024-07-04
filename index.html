@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>즐거운 테트리스 교실</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #FFD700;  /* 밝은 노란색 배경 */
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            color: #FF6347;  /* 제목 색상 */
+            margin-bottom: 20px;
+        }
+        #game-board {
+            border: 2px solid #333;
+            background-color: rgba(255, 255, 255, 0.8);  /* 반투명한 흰색 배경 */
+        }
+        #controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .control-btn {
+            font-size: 24px;
+            margin: 0 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>즐거운 테트리스 교실</h1>
+    <canvas id="game-board" width="200" height="400"></canvas>
+    <div id="controls">
+        <button class="control-btn" id="left-btn">←</button>
+        <button class="control-btn" id="rotate-btn">🔄</button>
+        <button class="control-btn" id="right-btn">→</button>
+        <button class="control-btn" id="down-btn">↓</button>
+    </div>
+    <script>
+        const canvas = document.getElementById('game-board');
+        const ctx = canvas.getContext('2d');
+        const ROWS = 20;
+        const COLS = 10;
+        const BLOCK_SIZE = 20;
+        let board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+        let currentPiece;
+        let dropCounter = 0;
+        let dropInterval = 1000;
+        let lastTime = 0;
+
+        const SHAPES = [
+            [[1, 1, 1, 1]],
+            [[1, 1], [1, 1]],
+            [[1, 1, 1], [0, 1, 0]],
+            [[1, 1, 1], [1, 0, 0]],
+            [[1, 1, 1], [0, 0, 1]],
+            [[1, 1, 0], [0, 1, 1]],
+            [[0, 1, 1], [1, 1, 0]]
+        ];
+
+        const COLORS = [
+            '#FF0000', '#FF7F00', '#FFFF00', '#00FF00', 
+            '#0000FF', '#4B0082', '#9400D3'
+        ];
+
+        function drawBoard() {
+            board.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value > 0) {
+                        ctx.fillStyle = COLORS[value - 1];
+                        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                        ctx.strokeStyle = '#000';
+                        ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                    }
+                });
+            });
+        }
+
+        function drawPiece() {
+            currentPiece.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value > 0) {
+                        ctx.fillStyle = COLORS[currentPiece.color];
+                        ctx.fillRect((currentPiece.x + x) * BLOCK_SIZE, (currentPiece.y + y) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                        ctx.strokeStyle = '#000';
+                        ctx.strokeRect((currentPiece.x + x) * BLOCK_SIZE, (currentPiece.y + y) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                    }
+                });
+            });
+        }
+
+        function newPiece() {
+            const shapeIndex = Math.floor(Math.random() * SHAPES.length);
+            currentPiece = {
+                x: Math.floor(COLS / 2) - 1,
+                y: 0,
+                shape: SHAPES[shapeIndex],
+                color: shapeIndex
+            };
+        }
+
+        function collide() {
+            for (let y = 0; y < currentPiece.shape.length; y++) {
+                for (let x = 0; x < currentPiece.shape[y].length; x++) {
+                    if (currentPiece.shape[y][x] && 
+                        (board[y + currentPiece.y] && 
+                        board[y + currentPiece.y][x + currentPiece.x]) !== 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function merge() {
+            currentPiece.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value > 0) {
+                        board[y + currentPiece.y][x + currentPiece.x] = currentPiece.color + 1;
+                    }
+                });
+            });
+        }
+
+        function clearLines() {
+            let linesCleared = 0;
+            for (let y = ROWS - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell !== 0)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(COLS).fill(0));
+                    linesCleared++;
+                }
+            }
+        }
+
+        function update(time = 0) {
+            const deltaTime = time - lastTime;
+            lastTime = time;
+
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) {
+                currentPiece.y++;
+                if (collide()) {
+                    currentPiece.y--;
+                    merge();
+                    clearLines();
+                    newPiece();
+                    if (collide()) {
+                        alert('게임 오버! 다시 시작합니다.');
+                        board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+                    }
+                }
+                dropCounter = 0;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBoard();
+            drawPiece();
+            requestAnimationFrame(update);
+        }
+
+        function moveLeft() {
+            currentPiece.x--;
+            if (collide()) {
+                currentPiece.x++;
+            }
+        }
+
+        function moveRight() {
+            currentPiece.x++;
+            if (collide()) {
+                currentPiece.x--;
+            }
+        }
+
+        function moveDown() {
+            currentPiece.y++;
+            if (collide()) {
+                currentPiece.y--;
+                merge();
+                clearLines();
+                newPiece();
+            }
+        }
+
+        function rotate() {
+            const rotated = currentPiece.shape[0].map((_, i) => 
+                currentPiece.shape.map(row => row[i]).reverse()
+            );
+            const previousShape = currentPiece.shape;
+            currentPiece.shape = rotated;
+            if (collide()) {
+                currentPiece.shape = previousShape;
+            }
+        }
+
+        document.addEventListener('keydown', e => {
+            switch(e.keyCode) {
+                case 37:
+                    moveLeft();
+                    break;
+                case 39:
+                    moveRight();
+                    break;
+                case 40:
+                    moveDown();
+                    break;
+                case 38:
+                    rotate();
+                    break;
+            }
+        });
+
+        // 모바일 제어 버튼
+        document.getElementById('left-btn').addEventListener('click', moveLeft);
+        document.getElementById('right-btn').addEventListener('click', moveRight);
+        document.getElementById('down-btn').addEventListener('click', moveDown);
+        document.getElementById('rotate-btn').addEventListener('click', rotate);
+
+        newPiece();
+        update();
+    </script>
+</body>
+</html>
